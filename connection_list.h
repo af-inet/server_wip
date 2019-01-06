@@ -12,9 +12,10 @@ struct connection_list
     struct pollfd poll_fds[MAX_CONNECTIONS];
     struct connection connections[MAX_CONNECTIONS];
     size_t count;
+    size_t total_count;
 };
 
-struct connection_list connection_list();
+void connection_list_init(struct connection_list *list);
 int connection_add(struct connection_list *list, struct connection conn);
 int connection_remove(struct connection_list *list, size_t index);
 

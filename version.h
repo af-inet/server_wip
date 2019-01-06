@@ -1,26 +1,23 @@
-#ifndef PLXR_VERSION_H
-#define PLXR_VERSION_H
-
-/* Currently versioning isn't very important, but it will be nice to know which binary you're using.
- */
+#ifndef VERSION_H
+#define VERSION_H
 
 #define xstr(a) str(a)
 #define str(a) #a
 
-#define PLXR_VERSION_MAJOR 1
-#define PLXR_VERSION_MINOR 0
-#define PLXR_VERSION_PATCH 0
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 0
+#define VERSION_PATCH 0
 
-#ifndef PLXR_COMMIT_HASH
+#ifndef COMMIT_HASH
 #warning "Missing git commit hash, compiling with incomplete version string."
-#define PLXR_COMMIT_STRING ""
+#define COMMIT_STRING ""
 #else
-#define PLXR_COMMIT_STRING " (" xstr(PLXR_COMMIT_HASH) ")"
+#define COMMIT_STRING " (" xstr(COMMIT_HASH) ")"
 #endif
 
-#define CONCAT(a,b,c,d) \
-	xstr(a) "." xstr(b) "." xstr(c) d
+#define CONCAT(a, b, c, d) \
+    xstr(a) "." xstr(b) "." xstr(c) d
 
-#define PLXR_VERSION_STRING CONCAT(PLXR_VERSION_MAJOR, PLXR_VERSION_MINOR, PLXR_VERSION_PATCH, PLXR_COMMIT_STRING)
+#define VERSION_STRING CONCAT(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, COMMIT_STRING)
 
-#endif /* PLXR_VERSION_H */
+#endif /* VERSION_H */

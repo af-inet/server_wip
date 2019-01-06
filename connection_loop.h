@@ -5,6 +5,6 @@
 #include "connection.h"
 #include "socket.h"
 
-void connection_loop(struct connection_list *list);
+int connection_loop(struct connection_list *list, int listen_fd);
 
 #endif /* CONNECTION_LOOP_H */

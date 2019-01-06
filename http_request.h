@@ -1,5 +1,5 @@
-#ifndef http_parse_h
-#define http_parse_h
+#ifndef HTTP_REQUEST_H
+#define HTTP_REQUEST_H
 
 #include <stdio.h>
 #include "http_state.h"
@@ -17,12 +17,11 @@ struct http_request
 
     const char *error;
 
-    enum http_state state;
+    int state;
 };
 
 int http_request_ready(struct http_request *request);
-
 void http_request_parse(struct http_request *request, char c);
 void http_request_print(struct http_request *request);
 
-#endif /* http_parse_h */
+#endif /* HTTP_REQUEST_H */

@@ -5,6 +5,8 @@
  * https://tools.ietf.org/html/rfc3986#
  */
 
+#define HTTP_STATE_COUNT (s_http_error + 1)
+
 const char *http_state_string(enum http_state state)
 {
 #define _STRING(x) \
@@ -12,30 +14,30 @@ const char *http_state_string(enum http_state state)
         return #x;
     switch (state)
     {
-        _STRING(s_init)
-        _STRING(s_error)
-        _STRING(s_method)
-        _STRING(s_method_sp)
-        _STRING(s_uri)
-        _STRING(s_uri_sp)
-        _STRING(s_h)
-        _STRING(s_ht)
-        _STRING(s_htt)
-        _STRING(s_http)
-        _STRING(s_http_slash)
-        _STRING(s_http_slash_1)
-        _STRING(s_http_slash_1_dot)
-        _STRING(s_http_slash_1_dot_x)
-        _STRING(s_status_cr)
-        _STRING(s_status_lf)
-        _STRING(s_header_name)
-        _STRING(s_header_colon)
-        _STRING(s_header_sp)
-        _STRING(s_header_value)
-        _STRING(s_header_cr)
-        _STRING(s_header_lf)
-        _STRING(s_end_cr)
-        _STRING(s_end_lf)
+        _STRING(s_http_init)
+        _STRING(s_http_error)
+        _STRING(s_http_method)
+        _STRING(s_http_method_sp)
+        _STRING(s_http_uri)
+        _STRING(s_http_uri_sp)
+        _STRING(s_http_h)
+        _STRING(s_http_ht)
+        _STRING(s_http_htt)
+        _STRING(s_http_http)
+        _STRING(s_http_http_slash)
+        _STRING(s_http_http_slash_1)
+        _STRING(s_http_http_slash_1_dot)
+        _STRING(s_http_http_slash_1_dot_x)
+        _STRING(s_http_status_cr)
+        _STRING(s_http_status_lf)
+        _STRING(s_http_header_name)
+        _STRING(s_http_header_colon)
+        _STRING(s_http_header_sp)
+        _STRING(s_http_header_value)
+        _STRING(s_http_header_cr)
+        _STRING(s_http_header_lf)
+        _STRING(s_http_end_cr)
+        _STRING(s_http_end_lf)
     }
     return "unknown state";
 #undef _STRING
@@ -170,7 +172,7 @@ const char *http_state_string(enum http_state state)
                     | "{" | "}" | SP | HT
     rfc2616
 */
-#define CASE_SEPARATORS_WITHOUT_TAB \
+#define CASE_SEPARATORs_http_WITHOUT_TAB \
     case '(':                       \
     case ')':                       \
     case '@':                       \
@@ -189,7 +191,7 @@ const char *http_state_string(enum http_state state)
     case '}':                       \
     case ' '
 #define CASE_SEPARATORS          \
-    CASE_SEPARATORS_WITHOUT_TAB: \
+    CASE_SEPARATORs_http_WITHOUT_TAB: \
     case '\t'
 
 /*
@@ -209,7 +211,7 @@ const char *http_state_string(enum http_state state)
     token          = 1*<any CHAR except CTLs or separators>
     rfc2616
 */
-int is_token(unsigned char c)
+int is_http_token(unsigned char c)
 {
     switch (c)
     {
@@ -217,14 +219,14 @@ int is_token(unsigned char c)
         /* tab is both SEPARATORS and CTL
           * which would violate the 'no duplicate case values' rule.
           */
-    CASE_SEPARATORS_WITHOUT_TAB:
+    CASE_SEPARATORs_http_WITHOUT_TAB:
         return 0;
     default:
         return 1;
     }
 }
 
-int is_alpha(char c)
+int is_http_alpha(char c)
 {
     switch (c)
     {
@@ -248,12 +250,12 @@ int is_alpha(char c)
     extension-method = token
     rfc2616
 */
-int is_method(char c)
+int is_http_method(char c)
 {
-    return is_alpha(c);
+    return is_http_alpha(c);
 }
 
-int is_char(char c)
+int is_http_char(char c)
 {
     switch (c)
     {
@@ -264,7 +266,7 @@ int is_char(char c)
     }
 }
 
-int is_digit(char c)
+int is_http_digit(char c)
 {
     switch (c)
     {
@@ -275,7 +277,7 @@ int is_digit(char c)
     }
 }
 
-int is_scheme(char c)
+int is_http_scheme(char c)
 {
     switch (c)
     {
@@ -286,7 +288,7 @@ int is_scheme(char c)
     }
 }
 
-int is_unreserved(char c)
+int is_http_unreserved(char c)
 {
     switch (c)
     {
@@ -297,7 +299,7 @@ int is_unreserved(char c)
     }
 }
 
-int is_reserved(char c)
+int is_http_reserved(char c)
 {
     switch (c)
     {
@@ -308,7 +310,7 @@ int is_reserved(char c)
     }
 }
 
-int is_pchar(char c)
+int is_http_pchar(char c)
 {
     switch (c)
     {
@@ -319,7 +321,7 @@ int is_pchar(char c)
     }
 }
 
-int is_seperator(char c)
+int is_http_seperator(char c)
 {
     switch (c)
     {
@@ -330,7 +332,7 @@ int is_seperator(char c)
     }
 }
 
-int is_ctl(unsigned char c)
+int is_http_ctl(unsigned char c)
 {
     switch (c)
     {
@@ -341,7 +343,7 @@ int is_ctl(unsigned char c)
     }
 }
 
-int is_space(char c)
+int is_http_space(char c)
 {
     switch (c)
     {
@@ -355,7 +357,7 @@ int is_space(char c)
     }
 }
 
-int is_uri(char c)
+int is_http_uri(char c)
 {
     switch (c)
     {
@@ -369,15 +371,15 @@ int is_uri(char c)
 /*
     field-name     = token
 */
-int is_header_name(char c)
+int is_http_header_name(char c)
 {
-    return is_token(c);
+    return is_http_token(c);
 }
 
 // https://stackoverflow.com/a/48138818
-int is_header_value(char c)
+int is_http_header_value(char c)
 {
-    return is_char(c) || !is_space(c);
+    return is_http_char(c) || !is_http_space(c);
 }
 
 /*
@@ -388,288 +390,285 @@ int is_header_value(char c)
  *    Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
  *    HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
  *    message-header = field-name ":" [ field-value ]
-
- *    
-
- *
+ * 
  * example:
  *     GET /index.html HTTP/1.1
  *     Host: www.google.com
  *     Accept: content-type/application-json
  */
-enum http_state http_state_next(char last, char c)
+enum http_state http_state_next(enum http_state last, char c)
 {
     switch (last)
     {
 
-    case s_init:
+    case s_http_init:
     {
-        if (is_method(c))
+        if (is_http_method(c))
         {
-            return s_method;
+            return s_http_method;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_method:
+    case s_http_method:
     {
-        if (is_method(c))
+        if (is_http_method(c))
         {
-            return s_method;
+            return s_http_method;
         }
-        if (is_space(c))
+        if (is_http_space(c))
         {
-            return s_method_sp;
+            return s_http_method_sp;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_method_sp:
+    case s_http_method_sp:
     {
-        if (is_space(c))
+        if (is_http_space(c))
         {
-            return s_method_sp;
+            return s_http_method_sp;
         }
-        if (is_uri(c))
+        if (is_http_uri(c))
         {
-            return s_uri;
+            return s_http_uri;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_uri:
+    case s_http_uri:
     {
-        if (is_uri(c))
+        if (is_http_uri(c))
         {
-            return s_uri;
+            return s_http_uri;
         }
-        if (is_space(c))
+        if (is_http_space(c))
         {
-            return s_uri_sp;
+            return s_http_uri_sp;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_uri_sp:
+    case s_http_uri_sp:
     {
-        if (is_space(c))
+        if (is_http_space(c))
         {
-            return s_uri_sp;
+            return s_http_uri_sp;
         }
         if (c == 'H')
         {
-            return s_h;
+            return s_http_h;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_h:
+    case s_http_h:
     {
         if (c == 'T')
         {
-            return s_ht;
+            return s_http_ht;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_ht:
+    case s_http_ht:
     {
         if (c == 'T')
         {
-            return s_htt;
+            return s_http_htt;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_htt:
+    case s_http_htt:
     {
         if (c == 'P')
         {
-            return s_http;
+            return s_http_http;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_http:
+    case s_http_http:
     {
         if (c == '/')
         {
-            return s_http_slash;
+            return s_http_http_slash;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_http_slash:
+    case s_http_http_slash:
     {
         if (c == '1')
         {
-            return s_http_slash_1;
+            return s_http_http_slash_1;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_http_slash_1:
+    case s_http_http_slash_1:
     {
         if (c == '.')
         {
-            return s_http_slash_1_dot;
+            return s_http_http_slash_1_dot;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_http_slash_1_dot:
+    case s_http_http_slash_1_dot:
     {
         if (c == '1' || c == '0')
         {
-            return s_http_slash_1_dot_x;
+            return s_http_http_slash_1_dot_x;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_http_slash_1_dot_x:
+    case s_http_http_slash_1_dot_x:
     {
         if (c == '\r')
         {
-            return s_status_cr;
+            return s_http_status_cr;
         }
         if (c == '\n')
         {
-            return s_status_lf;
+            return s_http_status_lf;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_status_cr:
+    case s_http_status_cr:
     {
         if (c == '\n')
         {
-            return s_status_lf;
+            return s_http_status_lf;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_status_lf:
+    case s_http_status_lf:
     {
-        if (is_header_name(c))
+        if (is_http_header_name(c))
         {
-            return s_header_name;
+            return s_http_header_name;
         }
         // edge case: what if no headers are sent? technically invalid but we accept it anyway.
         if (c == '\r')
         {
-            return s_end_cr;
+            return s_http_end_cr;
         }
         if (c == '\n')
         {
-            return s_end_lf;
+            return s_http_end_lf;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_header_name:
+    case s_http_header_name:
     {
-        if (is_header_name(c))
+        if (is_http_header_name(c))
         {
-            return s_header_name;
+            return s_http_header_name;
         }
         if (c == ':')
         {
-            return s_header_colon;
+            return s_http_header_colon;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_header_colon:
+    case s_http_header_colon:
     {
-        if (is_space(c))
+        if (is_http_space(c))
         {
-            return s_header_sp;
+            return s_http_header_sp;
         }
-        if (is_header_value(c))
+        if (is_http_header_value(c))
         {
-            return s_header_value;
+            return s_http_header_value;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_header_sp:
+    case s_http_header_sp:
     {
-        if (is_space(c))
+        if (is_http_space(c))
         {
-            return s_header_sp;
+            return s_http_header_sp;
         }
-        if (is_header_value(c))
+        if (is_http_header_value(c))
         {
-            return s_header_value;
+            return s_http_header_value;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_header_value:
+    case s_http_header_value:
     {
         if (c == '\r')
         {
-            return s_header_cr;
+            return s_http_header_cr;
         }
         if (c == '\n')
         {
-            return s_header_lf;
+            return s_http_header_lf;
         }
-        if (is_header_value(c))
+        if (is_http_header_value(c))
         {
-            return s_header_value;
+            return s_http_header_value;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_header_cr:
+    case s_http_header_cr:
     {
         if (c == '\n')
         {
-            return s_header_lf;
+            return s_http_header_lf;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_header_lf:
+    case s_http_header_lf:
     {
-        if (is_header_name(c))
+        if (is_http_header_name(c))
         {
-            return s_header_name;
+            return s_http_header_name;
         }
         if (c == '\r')
         {
-            return s_end_cr;
+            return s_http_end_cr;
         }
         if (c == '\n')
         {
-            return s_end_lf;
+            return s_http_end_lf;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_end_cr:
+    case s_http_end_cr:
     {
         if (c == '\n')
         {
-            return s_end_lf;
+            return s_http_end_lf;
         }
-        return s_error;
+        return s_http_error;
     }
 
-    case s_end_lf:
+    case s_http_end_lf:
     {
-        return s_error;
+        return s_http_error;
     }
 
-    case s_error:
+    case s_http_error:
     {
-        return s_error;
+        return s_http_error;
     }
 
     default:
         break;
     }
 
-    return s_error;
+    return s_http_error;
 }

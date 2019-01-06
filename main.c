@@ -10,63 +10,27 @@ void sigpipe_handler(int sig)
     printf("[!] caught SIGPIPE\n");
 }
 
-void wait_for_connections(struct connection_list *list, int listen_fd, int timeout)
-{
-    struct connection new_conn = {0};
-    struct pollfd pfd = {
-        .fd = listen_fd,
-        .events = POLLIN,
-        .revents = 0
-    };
-    int count = poll(&pfd, 1, timeout);
-
-    switch (count)
-    {
-    case 0:
-        break;
-    case -1:
-        ERROR("poll");
-        break;
-    default:
-        for (int i = 0; i < count; i++)
-        {
-            connection_accept(&new_conn, listen_fd);
-            if (new_conn.fd != -1)
-            {
-                connection_add(list, new_conn);
-            }
-            else
-            {
-                WARN("connection_accept: failed");
-            }
-        }
-    }
-}
-
 int main(int argc, char *argv[])
 {
     struct connection_list list[1] = {0};
+    char port[] = "8080";
 
-    /* ignore SIGPIPE */
     signal(SIGPIPE, sigpipe_handler);
 
-    /* disable buffered output */
-    setvbuf(stdout, NULL, _IONBF, 0);
+    int listen_fd = socket_listen("0.0.0.0", port);
 
-    int listen_fd = socket_listen("0.0.0.0", "8080");
-
-    while (1)
+    if (listen_fd == -1)
     {
-        if (list->count == 0)
-        {
-            wait_for_connections(list, listen_fd, -1);
-        }
-        else
-        {
-            wait_for_connections(list, listen_fd, 0);
-        }
-        connection_loop(list);
+        WARN("socket_listen: failed");
+        return 1;
     }
 
+    WARNF("listening on port: %s", port);
+
+    connection_list_init(list);
+
+    while (connection_loop(list, listen_fd) != -1)
+        ; /* keep going until we reach a fatal error */
+    
     return 0;
 }

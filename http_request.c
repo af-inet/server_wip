@@ -5,7 +5,7 @@ void http_request_parse_uri(struct http_request *request, char c)
     if (request->uri_len >= HTTP_URI_MAX)
     {
         request->error = "uri too long";
-        request->state = s_error;
+        request->state = s_http_error;
     }
     else
     {
@@ -19,7 +19,7 @@ void http_request_parse_method(struct http_request *request, char c)
     if (request->method_len >= HTTP_METHOD_MAX)
     {
         request->error = "method too long";
-        request->state = s_error;
+        request->state = s_http_error;
     }
     else
     {
@@ -31,13 +31,14 @@ void http_request_parse_method(struct http_request *request, char c)
 void http_request_parse(struct http_request *request, char c)
 {
     request->state = http_state_next(request->state, c);
+    // printf("'%c' | %s\n", c, http_state_string(request->state));
 
     switch (request->state)
     {
-    case s_method:
+    case s_http_method:
         http_request_parse_method(request, c);
         break;
-    case s_uri:
+    case s_http_uri:
         http_request_parse_uri(request, c);
         break;
     default:
@@ -49,8 +50,8 @@ int http_request_ready(struct http_request *request)
 {
     switch (request->state)
     {
-        case s_end_cr:
-        case s_end_lf:
+        case s_http_end_cr:
+        case s_http_end_lf:
             return 1;
         default:
             return 0;
