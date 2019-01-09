@@ -7,12 +7,15 @@
 #include <netdb.h>
 
 #include "socket.h"
+#include "stream.h"
 #include "http_request.h"
+#include "http_response.h"
 
 enum connection_state
 {
     s_conn_read,  /* reading request */
-    s_conn_write, /* writing response */
+    s_conn_write_header, /* writing response headers */
+    s_conn_write_body, /* writing response body */
     s_conn_wait,  /* we're done writing, have not received EOF yet */
     s_conn_eof,   /* client gracefully disconnected */
     s_conn_error, /* an error occured */
@@ -30,8 +33,11 @@ struct connection
     char port[NI_MAXSERV];
 
     struct http_request request;
+    struct http_response response;
 
     enum connection_state state;
+
+    struct stream stream;
 
     size_t bytes_wrote;
     size_t bytes_read;

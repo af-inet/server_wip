@@ -1,8 +1,15 @@
 #include <string.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include "connection.h"
 #include "http_request.h"
+#include "http_response.h"
+#include "file.h"
 #include "log.h"
+#include "result.h"
+
+static const char html_404[] =
+    "<html><head></head><body><h1>file not found</h1></body></html>";
 
 void connection_accept(struct connection *conn, int listen_fd)
 {
@@ -60,46 +67,24 @@ int connection_parse(struct connection *conn, char *buf, size_t count)
     return 0;
 }
 
-enum connection_state connection_state_write(struct connection *conn)
+void configure_response(struct connection *conn)
 {
-    ssize_t count;
-    const char msg[] =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain\r\n"
-        "Connection: close\r\n" // don't reuse connections (good way to test EOF handling)
-        "Content-Length: 10\r\n"
-        "\r\n"
-        "123456789\n";
-    ssize_t msg_len = sizeof(msg) - 1;
-    
-    if (!conn->writable)
+    struct file_data f = file_get(conn->request.uri);
+    if (f.data == NULL)
     {
-        return conn->state;
-    }
-
-    count = write(conn->fd, msg, msg_len);
-
-    if (count < 0)
-    {
-        if (errno == EAGAIN)
-        {
-            return s_conn_write; /* retry */
-        }
-        else
-        {
-            ERRORF("write", "%d %s:%s", conn->fd, conn->host, conn->port);
-            return s_conn_error;
-        }
-    }
-    else if (count != msg_len)
-    {
-        WARNF("wrote incorrect number of bytes %4d %s:%s", conn->fd, conn->host, conn->port);
-        return s_conn_error;
+        conn->response = (struct http_response){
+            .status_code = 404,
+            .content = (char *)html_404,
+            .content_type = "text/html",
+            .content_length = sizeof(html_404)};
     }
     else
     {
-        conn->bytes_wrote += count;
-        return s_conn_wait;
+        conn->response = (struct http_response){
+            .status_code = 200,
+            .content = f.data,
+            .content_type = "text/html",
+            .content_length = f.size};
     }
 }
 
@@ -138,9 +123,9 @@ enum connection_state connection_state_read(struct connection *conn)
     else
     {
         conn->bytes_read += count;
-        
+
         err = connection_parse(conn, buf, count);
-        
+
         if (err == -1)
         {
             WARNF("connection_parse error %d %s:%s", conn->fd, conn->host, conn->port);
@@ -148,7 +133,8 @@ enum connection_state connection_state_read(struct connection *conn)
         }
         else if (http_request_ready(&conn->request))
         {
-            return s_conn_write;
+            configure_response(conn);
+            return s_conn_write_header;
         }
         else
         {
@@ -191,14 +177,70 @@ enum connection_state connection_state_wait(struct connection *conn)
     }
 }
 
+void write_response_headers(struct connection *conn)
+{
+    char buffer[1024];
+    int count = http_response_format(&conn->response, buffer, sizeof(buffer));
+    conn->stream.data = buffer;
+    conn->stream.length = (size_t)count;
+    stream_write(&conn->stream, conn->fd);
+}
+
+void write_response_body(struct connection *conn)
+{
+    conn->stream.data = conn->response.content;
+    conn->stream.length = conn->response.content_length;
+    stream_write(&conn->stream, conn->fd);
+}
+
+enum connection_state connection_state_write_header(struct connection *conn)
+{
+    if (!conn->writable)
+    {
+        return conn->state;
+    }
+    write_response_headers(conn);
+    switch (conn->stream.state)
+    {
+    case OK:
+        return s_conn_write_header;
+    case DONE:
+        stream_reset(&conn->stream);
+        return s_conn_write_body;
+    case FAILED:
+        return s_conn_error;
+    }
+}
+
+enum connection_state connection_state_write_body(struct connection *conn)
+{
+    if (!conn->writable)
+    {
+        return conn->state;
+    }
+    write_response_body(conn);
+    switch (conn->stream.state)
+    {
+    case OK:
+        return s_conn_write_body;
+    case DONE:
+        stream_reset(&conn->stream);
+        return s_conn_wait;
+    case FAILED:
+        return s_conn_error;
+    }
+}
+
 enum connection_state connection_update(struct connection *conn)
 {
     switch (conn->state)
     {
     case s_conn_read:
         return connection_state_read(conn);
-    case s_conn_write:
-        return connection_state_write(conn);
+    case s_conn_write_header:
+        return connection_state_write_header(conn);
+    case s_conn_write_body:
+        return connection_state_write_body(conn);
     case s_conn_wait:
         return connection_state_wait(conn);
     case s_conn_eof:
