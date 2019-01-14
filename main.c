@@ -2,6 +2,7 @@
 #include <signal.h>
 #include "http_request.h"
 #include "socket.h"
+#include "version.h"
 #include "connection_list.h"
 #include "connection_loop.h"
 
@@ -15,7 +16,10 @@ int main(int argc, char *argv[])
     struct connection_list list[1] = {0};
     char port[] = "8080";
 
+    WARNF("version %s", VERSION_STRING);
+
     signal(SIGPIPE, sigpipe_handler);
+    // setvbuf(stdout, NULL, _IONBF, 0);
 
     int listen_fd = socket_listen("0.0.0.0", port);
 

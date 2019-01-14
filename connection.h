@@ -29,8 +29,10 @@ struct connection
 
     struct sockaddr addr;
 
-    char host[NI_MAXHOST];
-    char port[NI_MAXSERV];
+    /* "... enough space must be provided to store the host name or service string
+    plus a byte for the NUL terminator." getnameinfo(3) */
+    char host[NI_MAXHOST+1];
+    char port[NI_MAXSERV+1];
 
     struct http_request request;
     struct http_response response;
@@ -43,9 +45,7 @@ struct connection
     size_t bytes_read;
 
     /* currently only used for logging */
-    int resp_status_code;
     time_t resp_timestamp;
-    size_t resp_len;
 };
 
 void connection_accept(struct connection *conn, int listen_fd);
@@ -53,10 +53,5 @@ void connection_close(struct connection *conn);
 enum connection_state connection_update(struct connection *conn);
 const char *connection_state_string(enum connection_state s);
 void connection_debug(struct connection *conn);
-
-// void connection_read(struct connection *conn);
-// void connection_write(struct connection *conn);
-// void connection_close(struct connection *conn);
-// void connection_http_parse(struct connection *conn, char c);
 
 #endif /* CONNECTION_H */

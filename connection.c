@@ -27,9 +27,10 @@ void connection_accept(struct connection *conn, int listen_fd)
 
     err = getnameinfo(
         &conn->addr, socklen,             /* (input) address */
-        conn->host, sizeof(conn->host),   /* (output) host */
-        conn->port, sizeof(conn->port),   /* (output) port */
+        conn->host, NI_MAXHOST,           /* (output) host */
+        conn->port, NI_MAXSERV,           /* (output) port */
         NI_NUMERICSERV | NI_NUMERICHOST); /* (input) give us the numeric hostname/port info */
+
     if (err)
     {
         GAI_ERROR("getnameinfo", err);

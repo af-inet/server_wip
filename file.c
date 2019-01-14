@@ -27,15 +27,12 @@ void file_buffer_free(struct file_buffer *fb)
     free(fb);
 }
 
-struct file_buffer *file_buffer_alloc(const char *path)
+char *file_alloc(const char *path, struct stat *info)
 {
-    struct file_buffer *fb;
-    struct stat info;
-    char *buffer;
-    int fd;
-    int err;
-    int count;
     size_t path_len;
+    char *buffer;
+    int result;
+    int fd;
 
     path_len = strlen(path);
 
@@ -52,15 +49,15 @@ struct file_buffer *file_buffer_alloc(const char *path)
         return NULL;
     }
 
-    err = fstat(fd, &info);
-    if (err == -1)
+    result = fstat(fd, info);
+    if (result == -1)
     {
         ERROR("fstat");
         close(fd);
         return NULL;
     }
 
-    buffer = malloc(info.st_size + 1);
+    buffer = malloc(info->st_size + 1);
     if (buffer == NULL)
     {
         ERROR("malloc");
@@ -68,37 +65,50 @@ struct file_buffer *file_buffer_alloc(const char *path)
         return NULL;
     }
 
-    memset(buffer, 0, info.st_size + 1);
-
-    count = read(fd, buffer, info.st_size);
-    if (count < 0)
+    result = read(fd, buffer, info->st_size);
+    if (result < 0)
     {
         ERROR("read");
         close(fd);
+        WARN("free");
         free(buffer);
         return NULL;
     }
 
-    close(fd);
+    close(fd); /* no need for this anymore */
 
-    if (count != info.st_size)
+    if (result != info->st_size)
     {
-        WARNF("unexpected read count %d != %d", count, (int)info.st_size);
+        WARNF("unexpected read count %d != %d", result, (int)info->st_size);
+        WARN("free");
         free(buffer);
         return NULL;
     }
 
-    buffer[info.st_size] = '\0'; /* NUL terminator */
+    buffer[info->st_size] = '\0'; /* NUL terminator */
+    return buffer;
+}
+
+struct file_buffer *file_buffer_alloc(const char *path)
+{
+    struct file_buffer *fb;
+    struct stat info;
+    char *buffer;
+
+    buffer = file_alloc(path, &info);
+    if (buffer == NULL)
+        return NULL;
 
     fb = malloc(sizeof(*fb));
     if (fb == NULL)
     {
         ERROR("malloc");
+        WARN("free");
         free(buffer);
         return NULL;
     }
 
-    memcpy(fb->name, path, path_len);
+    memcpy(fb->name, path, info.st_size);
     fb->data = buffer;
     fb->size = info.st_size;
     fb->last_modified = info.st_mtime;
@@ -153,39 +163,42 @@ char *file_adjust_path(char *path)
     return path;
 }
 
+struct file_data file_data(char *data, size_t size)
+{
+    return (struct file_data) {.data = data, .size = size};
+}
+
+struct file_data FILE_DATA_NONE = (struct file_data) {.data = NULL, .size = 0};
+
 struct file_data file_get(char *path)
 {
-    struct file_buffer *fb;
+    struct file_buffer *fb = NULL;
 
     /* remove leading slash */
     path = file_adjust_path(path);
-
-    if (path == NULL)
+    if (path == NULL || (strlen(path) == 0))
     {
-        WARN("null path");
-        return (struct file_data) {.data = NULL, .size = 0};
-    }
-
-    if (strlen(path) == 0)
-    {
-        return (struct file_data) {.data = NULL, .size = 0};
+        WARN("empty path");
+        return FILE_DATA_NONE;
     }
 
     /* check if the file is in cache */
     fb = file_buffer_find(&_root, path);
     if (fb)
     {
+        WARN("cache hit");
         fb->last_accessed = time(NULL);
-        return (struct file_data) {.data = fb->data, .size = fb->size}; /* cache hit */
+        return file_data(fb->data, fb->size); /* cache hit */
     }
 
     fb = file_buffer_alloc(path);
     if (fb)
     {
+        WARN("cache miss");
         fb->last_accessed = time(NULL);
         file_buffer_insert(&_root, fb);
-        return (struct file_data) {.data = fb->data, .size = fb->size}; /* cache miss */
+        return file_data(fb->data, fb->size); /* cache miss */
     }
 
-    return (struct file_data) {.data = NULL, .size = 0};
+    return FILE_DATA_NONE;
 }

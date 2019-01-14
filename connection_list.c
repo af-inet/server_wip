@@ -38,7 +38,7 @@ int connection_remove(struct connection_list *list, size_t index)
     }
     // replace the connection at `index` with the last connection
     list->connections[index] = list->connections[list->count - 1];
-    list->poll_fds[index] =  list->poll_fds[list->count - 1];
+    list->poll_fds[index] = list->poll_fds[list->count - 1];
     // just to avoid potentially using old file descriptors, lets set them to -1
     list->connections[list->count - 1] = (struct connection){.fd = -1};
     list->poll_fds[list->count - 1] = (struct pollfd){.fd = -1};
