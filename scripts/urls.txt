@@ -1,7 +1,4 @@
-#http://localhost:8080/
-#http://localhost:8080/main.c
-#http://localhost:8080/file.c
-#http://localhost:8080/scripts/urls.txt
-
 http://localhost:8080/
-http://localhost:8080/plxr
+http://localhost:8080/main.c
+http://localhost:8080/file.c
+http://localhost:8080/scripts/urls.txt

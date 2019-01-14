@@ -70,7 +70,6 @@ char *file_alloc(const char *path, struct stat *info)
     {
         ERROR("read");
         close(fd);
-        WARN("free");
         free(buffer);
         return NULL;
     }
@@ -80,7 +79,6 @@ char *file_alloc(const char *path, struct stat *info)
     if (result != info->st_size)
     {
         WARNF("unexpected read count %d != %d", result, (int)info->st_size);
-        WARN("free");
         free(buffer);
         return NULL;
     }
@@ -103,7 +101,6 @@ struct file_buffer *file_buffer_alloc(const char *path)
     if (fb == NULL)
     {
         ERROR("malloc");
-        WARN("free");
         free(buffer);
         return NULL;
     }
@@ -178,7 +175,6 @@ struct file_data file_get(char *path)
     path = file_adjust_path(path);
     if (path == NULL || (strlen(path) == 0))
     {
-        WARN("empty path");
         return FILE_DATA_NONE;
     }
 
@@ -186,7 +182,6 @@ struct file_data file_get(char *path)
     fb = file_buffer_find(&_root, path);
     if (fb)
     {
-        WARN("cache hit");
         fb->last_accessed = time(NULL);
         return file_data(fb->data, fb->size); /* cache hit */
     }
@@ -194,7 +189,6 @@ struct file_data file_get(char *path)
     fb = file_buffer_alloc(path);
     if (fb)
     {
-        WARN("cache miss");
         fb->last_accessed = time(NULL);
         file_buffer_insert(&_root, fb);
         return file_data(fb->data, fb->size); /* cache miss */

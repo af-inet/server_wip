@@ -87,20 +87,14 @@ int connection_loop(struct connection_list *list, int listen_fd)
     {
         err = connection_loop_accept(list, listen_fd, -1);
         if (err == -1)
-        {
-            WARN("connection_loop_accept: error");
             return -1;
-        }
     }
     else
     {
         while ((err = connection_loop_accept(list, listen_fd, 0)) == 1)
             ; /* keep accepting connectionas as long as their queued */
         if (err == -1)
-        {
-            WARN("connection_loop_accept: error");
             return -1;
-        }
     }
     return connection_loop_poll(list, listen_fd);
 }

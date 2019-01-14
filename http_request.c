@@ -31,7 +31,6 @@ void http_request_parse_method(struct http_request *request, char c)
 void http_request_parse(struct http_request *request, char c)
 {
     request->state = http_state_next(request->state, c);
-    // printf("'%c' | %s\n", c, http_state_string(request->state));
 
     switch (request->state)
     {
