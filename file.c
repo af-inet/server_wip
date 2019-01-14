@@ -108,7 +108,7 @@ struct file_buffer *file_buffer_alloc(const char *path)
         return NULL;
     }
 
-    memcpy(fb->name, path, info.st_size);
+    strncpy(fb->name, path, sizeof(fb->name));
     fb->data = buffer;
     fb->size = info.st_size;
     fb->last_modified = info.st_mtime;
